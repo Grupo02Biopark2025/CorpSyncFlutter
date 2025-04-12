@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:corp_syncmdm/modules/user/user_model.dart';
 import 'package:corp_syncmdm/modules/user/user_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'cards.dart';
 // import 'tela_redefinir_senha_login.dart';
 // import 'tela_resetar_senha.dart';
@@ -24,14 +25,14 @@ class _LoginPageState extends State<LoginPage> {
 
   // Função para fazer login via API
   Future<void> loginUser() async {
-    final String email = emailController.text;
-    final String password = passwordController.text;
+    final String email = emailController.text.trim();
+    final String password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
       showErrorDialog("Por favor, insira seu email e senha.");
       return;
     }
-    final url = Uri.parse('http://10.0.2.2:4040/api/auth/login');
+    final url = Uri.parse('http://172.31.176.1:4040/api/auth/login');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -43,11 +44,15 @@ class _LoginPageState extends State<LoginPage> {
         final responseData = jsonDecode(response.body);
         final user = UserModel.fromJson(responseData['user']);
         final String token = responseData['token'];
-
+  
+        // Salva no provider
         Provider.of<UserProvider>(context, listen: false).setUser(user);
 
-        // await SecureStorage.saveToken(token);
+        // Salva o token localmente
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', token);
 
+        // Navega para a tela de dashboard
         Navigator.of(context).pushReplacementNamed('/dashboard');
       } catch (e) {
           showErrorDialog("Erro! Contate um suporte.");
