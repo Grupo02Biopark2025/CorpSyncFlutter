@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:corp_syncmdm/services/auth_service.dart';
 
 class CustomDrawer extends StatelessWidget {
   final bool isDarkMode;
@@ -11,8 +12,6 @@ class CustomDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -21,12 +20,10 @@ class CustomDrawer extends StatelessWidget {
             accountName: Text('Nome do Usuário'),
             accountEmail: Text('email@exemplo.com'),
             currentAccountPicture: CircleAvatar(
-              backgroundImage: AssetImage('assets/images/Logo.png')
-                      as ImageProvider,
+              backgroundImage:
+                  AssetImage('assets/images/Logo.png') as ImageProvider,
             ),
-            decoration: BoxDecoration(
-              color: Color(0xFF082142),
-            ),
+            decoration: BoxDecoration(color: Color(0xFF082142)),
             otherAccountsPictures: <Widget>[
               IconButton(
                 icon: Icon(
@@ -61,11 +58,17 @@ class CustomDrawer extends StatelessWidget {
                 leading: Icon(Icons.add),
                 title: Text('Cadastrar Usuarios'),
                 onTap: () {
-                  Navigator.of(context)
-                      .pushReplacementNamed('/usuario/cadastro');
+                  Navigator.of(
+                    context,
+                  ).pushReplacementNamed('/usuario/cadastro');
                 },
               ),
             ],
+          ),
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Sair'),
+            onTap: () => logoutUser(context),
           ),
         ],
       ),

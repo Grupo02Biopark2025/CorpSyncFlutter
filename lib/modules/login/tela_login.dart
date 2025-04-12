@@ -32,7 +32,7 @@ class _LoginPageState extends State<LoginPage> {
       showErrorDialog("Por favor, insira seu email e senha.");
       return;
     }
-    final url = Uri.parse('http://172.31.176.1:4040/api/auth/login');
+    final url = Uri.parse('http://192.168.3.112:4040/api/auth/login');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
