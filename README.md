@@ -69,8 +69,8 @@ npx prisma migrate dev --name init
 ```sql
 INSERT INTO "User" (name, email, password)
 VALUES (
-  'Gustavo Domingos',
-  'gusta@mdm.com',
+  'Usuario',
+  'user@mdm.com',
   '$2b$10$LSJAYKHKdd5m6FEC1DzCA.5DyL291cgHMa8YWhWgk6a9xb97lYt.i'
 );
 ```
@@ -110,7 +110,7 @@ flutter run
 ## 🔐 Credenciais de teste
 
 ```
-Email: gusta@mdm.com
+Email: user@mdm.com
 Senha: 123456
 ```
 
@@ -127,20 +127,4 @@ Senha: 123456
 
 ---
 
-## 📌 Estrutura geral
 
-```
-lib/
-├── modules/
-│   ├── login/
-│   ├── dashboard/
-│   └── user/
-├── services/
-│   └── auth_service.dart
-├── widgets/
-│   └── custom_drawer.dart
-```
-
----
-
-Desenvolvido por Gustavo 🚀
