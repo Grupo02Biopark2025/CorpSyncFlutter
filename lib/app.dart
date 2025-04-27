@@ -1,4 +1,6 @@
 import 'package:corp_syncmdm/modules/dashboard/dashboard.dart';
+import 'package:corp_syncmdm/modules/devices/add_device.dart';
+import 'package:corp_syncmdm/modules/devices/devices.dart';
 import 'package:corp_syncmdm/modules/login/tela_redefinir_senha_login.dart';
 import 'package:corp_syncmdm/modules/login/tela_resetar_senha.dart';
 import 'package:corp_syncmdm/modules/login/tela_verifica_codigo.dart';
@@ -23,9 +25,18 @@ class MyApp extends StatelessWidget {
           initialRoute: '/login',
           routes: {
             '/login': (context) => LoginPage(),
-            '/dashboard':
-                (context) =>
-                    MainScaffold(body: DashboardPage(), title: 'Dashboard'),
+            '/dashboard': (context) => MainScaffold(
+                body: DashboardPage(),
+                title: 'Dashboard',
+              ),
+            '/dispositivos/add': (context) => MainScaffold(
+                body: AddDevicePage(),
+                title: 'Adicionar Dispositivo',
+              ),
+            '/dispositivos': (context) => MainScaffold(
+                body: DevicesPage(),
+                title: 'Lista de Dispositivos',
+              ),            
             '/forgot-password': (context) => const ForgotPasswordPage(),
             '/verify-reset-code':
                 (context) => const VerifyResetCodePage(), 

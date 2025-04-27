@@ -7,6 +7,10 @@ import 'package:corp_syncmdm/modules/user/user_model.dart';
 import 'package:corp_syncmdm/modules/user/user_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'cards.dart';
+import 'package:corp_syncmdm/screens/qr_scanner_page.dart';
+// import 'tela_redefinir_senha_login.dart';
+// import 'tela_resetar_senha.dart';
+import 'tela_cadastro_user.example';
 
 
 class LoginPage extends StatefulWidget {
@@ -184,7 +188,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: SizedBox.expand(
                       child: TextButton(
                         onPressed: () {
-                          loginUser(); // Chamada para a função de login
+                          loginUser();
                         },
                         style: TextButton.styleFrom(
                           backgroundColor: const Color(0xFF259073),
@@ -205,6 +209,24 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton(
+                      onPressed: (){
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                            builder: (context) => QRScannerPage(),
+                        ),
+                        );
+                      },
+                      child: const Text(
+                        "Escanear QR Code",
+                        style: TextStyle(
+                          color: Color(0xFF7FDA89),
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
                   ),
                 ],
               ),

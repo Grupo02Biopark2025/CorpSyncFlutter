@@ -44,6 +44,26 @@ class CustomDrawer extends StatelessWidget {
             },
           ),
           ExpansionTile(
+            leading: Icon(Icons.smartphone),
+            title: Text('Dispositivos'),
+            children: <Widget>[
+              ListTile(
+                leading: Icon(Icons.list),
+                title: Text('Lista de Dispositivos'),
+                onTap: () {
+                  Navigator.of(context).pushReplacementNamed('/dispositivos');
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.add),
+                title: Text('Adicionar Dispositivo'),
+                onTap: () {
+                  Navigator.of(context).pushReplacementNamed('/dispositivos/add');
+                },
+              ),
+            ],
+          ),
+          ExpansionTile(
             leading: Icon(Icons.supervised_user_circle),
             title: Text('Usuarios'),
             children: <Widget>[

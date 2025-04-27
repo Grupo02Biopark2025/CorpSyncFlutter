@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "22000336342",
-    "project_id": "corpsync-mdm",
-    "storage_bucket": "corpsync-mdm.firebasestorage.app"
+    "project_number": "159705809298",
+    "project_id": "corpsync-874ab",
+    "storage_bucket": "corpsync-874ab.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:22000336342:android:3ad389218086b7d7553877",
+        "mobilesdk_app_id": "1:159705809298:android:e0f5535f0ca7ed497f814b",
         "android_client_info": {
           "package_name": "com.berna.corp_syncmdm"
         }
@@ -15,26 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBxPSapzKtuKTMDlBbXKWAVw2BQJc2y9so"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:22000336342:android:2626869d482c50a2553877",
-        "android_client_info": {
-          "package_name": "com.corpsync.mdm"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBxPSapzKtuKTMDlBbXKWAVw2BQJc2y9so"
+          "current_key": "AIzaSyBzjfp1r1Qh1KigA-UfYzrv5IYJ-ha_730"
         }
       ],
       "services": {
