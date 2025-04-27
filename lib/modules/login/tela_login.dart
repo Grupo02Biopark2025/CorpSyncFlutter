@@ -7,9 +7,7 @@ import 'package:corp_syncmdm/modules/user/user_model.dart';
 import 'package:corp_syncmdm/modules/user/user_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'cards.dart';
-// import 'tela_redefinir_senha_login.dart';
-// import 'tela_resetar_senha.dart';
-import 'tela_cadastro_user.example';
+
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -169,12 +167,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       onPressed: () {
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) => const ResetPasswordPage(),
-                        //   ),
-                        // );
+                        Navigator.of(context).pushNamed('/forgot-password');
                       },
                     ),
                   ),

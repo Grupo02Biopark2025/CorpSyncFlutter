@@ -1,10 +1,14 @@
 import 'package:corp_syncmdm/modules/dashboard/dashboard.dart';
+import 'package:corp_syncmdm/modules/login/tela_redefinir_senha_login.dart';
+import 'package:corp_syncmdm/modules/login/tela_resetar_senha.dart';
+import 'package:corp_syncmdm/modules/login/tela_verifica_codigo.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:corp_syncmdm/widgets/custom_scroll_behavior.dart';
 import 'widgets/main_scaffold.dart';
 import 'package:corp_syncmdm/modules/login/tela_login.dart';
 import 'theme/theme_notifier.dart';
+import 'package:corp_syncmdm/modules/login/tela_verifica_codigo.dart';
 
 class MyApp extends StatelessWidget {
   @override
@@ -19,11 +23,19 @@ class MyApp extends StatelessWidget {
           initialRoute: '/login',
           routes: {
             '/login': (context) => LoginPage(),
-            '/dashboard': (context) => MainScaffold(
-                body: DashboardPage(),
-                title: 'Dashboard',
-              ),
-
+            '/dashboard':
+                (context) =>
+                    MainScaffold(body: DashboardPage(), title: 'Dashboard'),
+            '/forgot-password': (context) => const ForgotPasswordPage(),
+            '/verify-reset-code':
+                (context) => const VerifyResetCodePage(), 
+            '/reset-password': (context) {
+              final args =
+                  ModalRoute.of(context)!.settings.arguments
+                      as Map<String, dynamic>;
+              final email = args['email'] as String;
+              return ResetPasswordPage(email: email);
+            },
           },
         );
       },
@@ -33,9 +45,6 @@ class MyApp extends StatelessWidget {
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeNotifier(),
-      child: MyApp(),
-    ),
+    ChangeNotifierProvider(create: (_) => ThemeNotifier(), child: MyApp()),
   );
 }
