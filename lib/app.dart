@@ -1,4 +1,6 @@
 import 'package:corp_syncmdm/modules/dashboard/dashboard.dart';
+import 'package:corp_syncmdm/modules/devices/add_device.dart';
+import 'package:corp_syncmdm/modules/devices/devices.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:corp_syncmdm/widgets/custom_scroll_behavior.dart';
@@ -22,6 +24,14 @@ class MyApp extends StatelessWidget {
             '/dashboard': (context) => MainScaffold(
                 body: DashboardPage(),
                 title: 'Dashboard',
+              ),
+            '/dispositivos/add': (context) => MainScaffold(
+                body: AddDevicePage(),
+                title: 'Adicionar Dispositivo',
+              ),
+            '/dispositivos': (context) => MainScaffold(
+                body: DevicesPage(),
+                title: 'Lista de Dispositivos',
               ),
 
           },
