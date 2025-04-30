@@ -10,6 +10,9 @@ import 'services/workmanager_sync.dart';
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
 
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('auth_token');
+
   await Firebase.initializeApp(
     options: const FirebaseOptions(
       apiKey: "AIzaSyBzjfp1r1Qh1KigA-UfYzrv5IYJ-ha_730",

@@ -593,6 +593,10 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.8"
+      sha256: c2c8c46297b5d6a80bed7741ec1f2759742c77d272f1a1698176ae828f8e1a18
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.4.9"
   shared_preferences_foundation:
     dependency: transitive
     description:
