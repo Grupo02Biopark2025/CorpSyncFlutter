@@ -24,8 +24,8 @@ void main() async{
 
   await initializeWorkManager();
 
-  final prefs = await SharedPreferences.getInstance();
-  final ativarSync = prefs.getBool("ativar_sync") ?? false;
+  final prefsSync = await SharedPreferences.getInstance();
+  final ativarSync = prefsSync.getBool("ativar_sync") ?? false;
   if(ativarSync) {
     await startPeriodicSyncAfterQRScan();
   }
