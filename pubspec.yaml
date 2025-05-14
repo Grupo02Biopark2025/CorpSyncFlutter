@@ -44,7 +44,7 @@ dependencies:
   qr_flutter: 4.1.0
   uuid: 4.5.1
   provider: ^6.0.1
-  http: ^0.13.3
+  http: ^1.4.0
   image_picker: ^0.8.4+4
   path_provider: ^2.0.11
   firebase_core: ^3.12.1
@@ -53,6 +53,10 @@ dependencies:
   device_info_plus: ^11.3.3
   battery_plus: ^6.2.1
   package_info_plus: 8.3.0
+  geolocator: ^10.0.0
+  flutter_map: ^5.0.0
+  latlong2: ^0.9.0
+  url_launcher: ^6.2.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

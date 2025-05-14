@@ -13,7 +13,7 @@ class MainScaffold extends StatelessWidget {
     Key? key, 
     required this.body, 
     required this.title,
-    this.backgroundColor = const Color(0xFF082142),
+    this.backgroundColor = const Color(0xFF259073),
     this.titleColor = Colors.white,
   }) : super(key: key);
 

@@ -23,7 +23,7 @@ class CustomDrawer extends StatelessWidget {
               backgroundImage:
                   AssetImage('assets/images/Logo.png') as ImageProvider,
             ),
-            decoration: BoxDecoration(color: Color(0xFF082142)),
+            decoration: BoxDecoration(color: Color(0xFF259073)),
             otherAccountsPictures: <Widget>[
               IconButton(
                 icon: Icon(
