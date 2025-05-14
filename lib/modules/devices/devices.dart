@@ -1,3 +1,5 @@
+import 'package:corp_syncmdm/modules/devices/device_detail_page.dart';
+import 'package:corp_syncmdm/modules/devices/devices_logs_page.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -21,7 +23,6 @@ class _DevicesPageState extends State<DevicesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Lista de Dispositivos')),
       body: FutureBuilder<List<dynamic>>(
         future: fetchDevices(),
         builder: (context, snapshot) {
@@ -42,7 +43,16 @@ class _DevicesPageState extends State<DevicesPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
                 child: GestureDetector(
                   onTap: () {
-                    // Inserir redirecionamento pra tela dos logs
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DeviceDetailPage(
+                          deviceId: device['deviceId'],
+                          deviceModel: device['model'] ?? 'Dispositivo',
+                          deviceData: device,
+                        ),
+                      ),
+                    );
                   },
                   child: Card(
                     elevation: 3,
