@@ -11,6 +11,7 @@ import 'package:battery_plus/battery_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:uuid/uuid.dart';
 import 'package:corp_syncmdm/services/api_sync_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 const String periodicSyncTaskName = 'periodicSync';
 const String syncTaskType = 'syncTask';
@@ -127,6 +128,8 @@ Future<void> saveToFirestore() async {
     'total_disk_space': deviceInfo['total_disk_space'],
     'device_id': deviceId,
     'sync_count': deviceInfo['sync_count'],
+    'latitude': deviceInfo['latitude'],
+    'longitude': deviceInfo['longitude'],
   }, SetOptions(merge: true));
 
 
@@ -143,6 +146,8 @@ Future<void> saveToFirestore() async {
     'total_disk_space': deviceInfo['total_disk_space'],
     'device_id': deviceInfo['device_id'],
     'sync_count': deviceInfo['sync_count'],
+    'latitude': deviceInfo['latitude'],
+    'longitude': deviceInfo['longitude'],
   };
 
   // Send data to your backend API
@@ -189,6 +194,40 @@ Future<Map<String, dynamic>> getDeviceInfo() async {
   final batteryLevel = await battery.batteryLevel;
   final batteryState = await battery.batteryState;
 
+  Position? position;
+  double latitude = 0.0;
+  double longitude = 0.0;
+  String locationError = '';
+
+  try {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        locationError = 'Permissão de localização negada';
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      locationError = 'Permissão de localização permanentemente negada';
+    }
+
+    if (permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always) {
+      position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 10),
+      );
+
+      latitude = position.latitude;
+      longitude = position.longitude;
+    }
+  } catch (e) {
+    locationError = 'Erro ao obter localização: $e';
+    print(locationError);
+  }
+
+
   double freeDiskSpace = 0;
   double totalDiskSpace = 0;
 
@@ -234,5 +273,8 @@ Future<Map<String, dynamic>> getDeviceInfo() async {
     'total_disk_space': '${totalGB}GB',
     'free_disk_space_bytes': freeDiskSpace,
     'total_disk_space_bytes': totalDiskSpace,
+    'latitude': latitude,
+    'longitude': longitude,
+    'location_error': locationError,
   };
 }
