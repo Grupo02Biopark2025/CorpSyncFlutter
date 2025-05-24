@@ -38,7 +38,8 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
       );
 
       if (response.statusCode == 200) {
-        final logs = json.decode(response.body) as List;
+        final data = json.decode(response.body);
+        final logs = data['logs'] as List;
         return logs.isNotEmpty ? logs.first : null;
       } else {
         throw Exception('Falha ao carregar o último log');
@@ -74,9 +75,6 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
               _buildDeviceInfoCard(),
               SizedBox(height: 24),
 
-              SizedBox(height: 12),
-
-
               FutureBuilder<Map<String, dynamic>?>(
                 future: _lastLogFuture,
                 builder: (context, snapshot) {
@@ -92,14 +90,18 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Métricas rápidas
+                      _buildQuickMetrics(log),
                       SizedBox(height: 24),
 
-                      if (log['latitude'] != null && log['longitude'] != null)
+                      // Mapa se tiver localização
+                      if (log['latitude'] != null && log['longitude'] != null &&
+                          (log['latitude'] != 0 || log['longitude'] != 0))
                         _buildLocationSection(log),
 
-
                       SizedBox(height: 24),
 
+                      // Último log detalhado
                       Text(
                         'Último Log',
                         style: TextStyle(
@@ -107,7 +109,8 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      _buildLogCard(log),
+                      SizedBox(height: 12),
+                      _buildDetailedLogCard(log),
                     ],
                   );
                 },
@@ -152,6 +155,247 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
         ),
       ),
     );
+  }
+
+  // Métricas rápidas em cards pequenos
+  Widget _buildQuickMetrics(Map<String, dynamic> log) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Status Atual',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _buildMetricCard('Bateria', '${log['batteryLevel'] ?? 0}%',
+                _getBatteryIcon(log['batteryState']), _getBatteryColor(log['batteryLevel'] ?? 0))),
+            SizedBox(width: 12),
+            Expanded(child: _buildMetricCard('Armazenamento', '${log['diskUsedPercentage']?.toStringAsFixed(1) ?? '0'}% usado',
+                Icons.storage, _getStorageColor(log['diskUsedPercentage'] ?? 0))),
+          ],
+        ),
+        SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _buildMetricCard('Conexão', _formatConnectionType(log['connectionType']),
+                _getConnectionIcon(log['connectionType']), Color(0xFF259073))),
+            SizedBox(width: 12),
+            Expanded(child: _buildMetricCard('Velocidade', '${log['speed']?.toStringAsFixed(2) ?? '0.00'} m/s',
+                Icons.speed, Colors.blue)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetricCard(String title, String value, IconData icon, Color color) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Card de log mais detalhado
+  Widget _buildDetailedLogCard(Map<String, dynamic> log) {
+    final batteryLevel = log['batteryLevel'] ?? 0;
+    final batteryState = log['batteryState'] ?? '';
+
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header do log
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _formatTimestamp(log['timestamp']),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF259073).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Sync #${log['syncCount'] ?? '0'}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF259073),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+
+            // Informações principais
+            _buildLogInfoRow('Mensagem', log['message'] ?? 'Sem mensagem'),
+
+            Divider(height: 24),
+
+            // Seção de bateria
+            Text('Bateria', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  _getBatteryIcon(batteryState),
+                  color: _getBatteryColor(batteryLevel),
+                  size: 20,
+                ),
+                SizedBox(width: 8),
+                Text('$batteryLevel%',
+                    style: TextStyle(fontWeight: FontWeight.w500, color: _getBatteryColor(batteryLevel))),
+                SizedBox(width: 8),
+                Text(_formatBatteryState(batteryState),
+                    style: TextStyle(color: Colors.grey[600])),
+              ],
+            ),
+
+            SizedBox(height: 16),
+
+            // Seção de armazenamento
+            Text('Armazenamento', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            SizedBox(height: 8),
+            _buildLogInfoRow('Espaço livre', log['freeDiskSpace'] ?? 'N/A'),
+            _buildLogInfoRow('Espaço total', log['totalDiskSpace'] ?? 'N/A'),
+            _buildLogInfoRow('Percentual usado', '${log['diskUsedPercentage']?.toStringAsFixed(1) ?? '0'}%'),
+
+            if (log['connectionType'] != null) ...[
+              SizedBox(height: 16),
+              Text('Conectividade', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              SizedBox(height: 8),
+              _buildLogInfoRow('Tipo de conexão', _formatConnectionType(log['connectionType'])),
+              if (log['wifiName'] != null)
+                _buildLogInfoRow('Nome da rede', log['wifiName']),
+            ],
+
+            if (log['altitude'] != null || log['locationAccuracy'] != null) ...[
+              SizedBox(height: 16),
+              Text('Informações de Localização', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              SizedBox(height: 8),
+              if (log['altitude'] != null)
+                _buildLogInfoRow('Altitude', '${log['altitude']}m'),
+              if (log['locationAccuracy'] != null)
+                _buildLogInfoRow('Precisão', '${log['locationAccuracy']}m'),
+              if (log['speed'] != null)
+                _buildLogInfoRow('Velocidade', '${log['speed']?.toStringAsFixed(2)} m/s'),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Funções auxiliares para ícones e cores
+  IconData _getBatteryIcon(String? state) {
+    if (state?.toLowerCase().contains('charging') ?? false) {
+      return Icons.battery_charging_full;
+    }
+    return Icons.battery_full;
+  }
+
+  Color _getBatteryColor(int level) {
+    if (level < 20) return Colors.red;
+    if (level < 50) return Colors.orange;
+    return Colors.green;
+  }
+
+  Color _getStorageColor(double percentage) {
+    if (percentage > 90) return Colors.red;
+    if (percentage > 70) return Colors.orange;
+    return Colors.green;
+  }
+
+  IconData _getConnectionIcon(String? type) {
+    switch (type?.toLowerCase()) {
+      case 'wifi':
+        return Icons.wifi;
+      case 'mobile':
+        return Icons.signal_cellular_alt;
+      case 'none':
+        return Icons.signal_wifi_off;
+      default:
+        return Icons.network_check;
+    }
+  }
+
+  String _formatConnectionType(String? type) {
+    switch (type?.toLowerCase()) {
+      case 'wifi':
+        return 'Wi-Fi';
+      case 'mobile':
+        return 'Dados móveis';
+      case 'none':
+        return 'Sem conexão';
+      default:
+        return type ?? 'Desconhecido';
+    }
   }
 
   Widget _buildLocationSection(Map<String, dynamic> log) {
@@ -297,6 +541,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     );
   }
 
+  // Funções existentes mantidas
   Widget _buildDeviceInfoCard() {
     return Card(
       elevation: 4,
@@ -320,6 +565,11 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
                   widget.deviceModel,
                   style: TextStyle(
                     fontSize: 24,
+
+
+
+
+
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -363,91 +613,6 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildLogCard(Map<String, dynamic> log) {
-    final batteryLevel = log['batteryLevel'] ?? 0;
-    final batteryState = log['batteryState'] ?? '';
-
-    Color batteryColor = Colors.green;
-    if (batteryLevel < 20) {
-      batteryColor = Colors.red;
-    } else if (batteryLevel < 50) {
-      batteryColor = Colors.orange;
-    }
-
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _formatTimestamp(log['timestamp']),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                Text(
-                  'Sync #${log['syncCount'] ?? '0'}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF259073),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            Text(
-              log['message'] ?? 'Sem mensagem',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 16),
-
-            // Indicador de bateria
-            Row(
-              children: [
-                Icon(
-                  batteryState.toLowerCase().contains('charging')
-                      ? Icons.battery_charging_full
-                      : Icons.battery_full,
-                  color: batteryColor,
-                ),
-                SizedBox(width: 8),
-                Text(
-                  '$batteryLevel%',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: batteryColor,
-                  ),
-                ),
-                SizedBox(width: 8),
-                Text(
-                  _formatBatteryState(batteryState),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -518,10 +683,8 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
   String _formatBatteryState(String state) {
     if (state.isEmpty) return 'Desconhecido';
 
-    // Remove o prefixo "BatteryState." se presente
     final cleanState = state.contains('.') ? state.split('.').last : state;
 
-    // Converte para formato mais legível
     switch (cleanState.toLowerCase()) {
       case 'charging':
         return 'Carregando';
@@ -529,6 +692,8 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
         return 'Descarregando';
       case 'full':
         return 'Completo';
+      case 'connectednotcharging':
+        return 'Conectado (não carregando)';
       default:
         return cleanState;
     }

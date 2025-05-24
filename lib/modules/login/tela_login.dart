@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:corp_syncmdm/services/workmanager_sync.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -21,6 +24,49 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+
+  Future<void> showPermissionsDialog(BuildContext context) async {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Permissões Necessárias'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text(
+                  'Para o funcionamento completo do sistema MDM, precisamos de algumas permissões:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 10),
+                Text('• Localização - Para rastrear a posição do dispositivo'),
+                Text('• Armazenamento - Para ler/gravar dados'),
+                Text('• Estado do telefone - Para informações do dispositivo'),
+                if (Platform.isAndroid)
+                  Text('• Estatísticas de uso - Para monitorar o tempo de tela'),
+                SizedBox(height: 10),
+                Text(
+                  'Algumas permissões precisam ser ativadas manualmente nas configurações do sistema.',
+                  style: TextStyle(fontStyle: FontStyle.italic),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Conceder Permissões'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Chame suas funções de permissão aqui
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool obscureText = true;
@@ -53,6 +99,8 @@ class _LoginPageState extends State<LoginPage> {
         // Salva o token localmente
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
+
+        await startPeriodicSyncAfterQRScan();
 
         // Navega para a tela de dashboard
         Navigator.of(context).pushReplacementNamed('/dashboard');

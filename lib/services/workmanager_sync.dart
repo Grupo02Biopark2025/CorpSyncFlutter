@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:corp_syncmdm/services/native_stats.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -12,6 +13,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:uuid/uuid.dart';
 import 'package:corp_syncmdm/services/api_sync_service.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 const String periodicSyncTaskName = 'periodicSync';
 const String syncTaskType = 'syncTask';
@@ -122,33 +124,24 @@ Future<void> saveToFirestore() async {
     'os': deviceInfo['os'],
     'os_version': deviceInfo['os_version'],
     'model': deviceInfo['model'],
+    'manufacturer': deviceInfo['manufacturer'],
+    'brand': deviceInfo['brand'],
     'battery_level': deviceInfo['battery_level'],
     'battery_state': deviceInfo['battery_state'],
     'free_disk_space': deviceInfo['free_disk_space'],
     'total_disk_space': deviceInfo['total_disk_space'],
+    'disk_used_percentage': deviceInfo['disk_used_percentage'],
     'device_id': deviceId,
     'sync_count': deviceInfo['sync_count'],
     'latitude': deviceInfo['latitude'],
     'longitude': deviceInfo['longitude'],
+    'connection_type': deviceInfo['connection_type'],
+    'is_online': deviceInfo['is_online'],
+    'screen_time_minutes': deviceInfo['screen_time_minutes'],
+    'total_apps_count': deviceInfo['total_apps_count'],
+    'system_apps_count': deviceInfo['system_apps_count'],
+    'user_apps_count': deviceInfo['user_apps_count'],
   }, SetOptions(merge: true));
-
-
-  // Final body for API request
-  final body = {
-    'message': 'Device sync at ${DateTime.now().toIso8601String()}',
-    'timestamp': DateTime.now().toIso8601String(),
-    'os': deviceInfo['os'],
-    'os_version': deviceInfo['os_version'],
-    'model': deviceInfo['model'],
-    'battery_level': deviceInfo['battery_level'],
-    'battery_state': deviceInfo['battery_state'],
-    'free_disk_space': deviceInfo['free_disk_space'],
-    'total_disk_space': deviceInfo['total_disk_space'],
-    'device_id': deviceInfo['device_id'],
-    'sync_count': deviceInfo['sync_count'],
-    'latitude': deviceInfo['latitude'],
-    'longitude': deviceInfo['longitude'],
-  };
 
   // Send data to your backend API
   bool success = await ApiSyncService.sendDeviceInfo(deviceInfo);
@@ -156,125 +149,189 @@ Future<void> saveToFirestore() async {
     await ApiSyncService.queueFailedApiCall(deviceInfo);
   }
 
-
   print("Data saved to Firestore with document ID: $deviceId");
 }
 
-// Optional: Gather some device information
+// Função atualizada para coletar informações do dispositivo
 Future<Map<String, dynamic>> getDeviceInfo() async {
   final prefs = await SharedPreferences.getInstance();
   final String deviceId = prefs.getString('device_id') ?? uuid.v4();
-
-
 
   if (prefs.getString('device_id') == null) {
     await prefs.setString('device_id', deviceId);
   }
 
-  final deviceInfoPlugin = DeviceInfoPlugin();
-  final battery = Battery();
-  final packageInfo = await PackageInfo.fromPlatform();
+  // Incrementar contador de sincronização
+  final int syncCount = (prefs.getInt('sync_count') ?? 0) + 1;
+  await prefs.setInt('sync_count', syncCount);
 
-  String model = '';
-  String os = '';
-  String osVersion = '';
-
-  if (Platform.isAndroid) {
-    final androidInfo = await deviceInfoPlugin.androidInfo;
-    model = androidInfo.model ?? 'Unknown';
-    os = 'Android';
-    osVersion = androidInfo.version.release ?? 'Unknown';
-  } else if (Platform.isIOS) {
-    final iosInfo = await deviceInfoPlugin.iosInfo;
-    model = iosInfo.utsname.machine ?? 'Unknown';
-    os = 'iOS';
-    osVersion = iosInfo.systemVersion ?? 'Unknown';
+  // Salvar primeira sincronização se não existir
+  if (prefs.getString('first_sync') == null) {
+    await prefs.setString('first_sync', DateTime.now().toIso8601String());
   }
 
-  final batteryLevel = await battery.batteryLevel;
-  final batteryState = await battery.batteryState;
+  final deviceInfoPlugin = DeviceInfoPlugin();
+  final battery = Battery();
 
-  Position? position;
-  double latitude = 0.0;
-  double longitude = 0.0;
-  String locationError = '';
+  Map<String, dynamic> deviceInfo = {
+    'device_id': deviceId,
+    'sync_count': syncCount,
+    'first_sync': prefs.getString('first_sync') ?? DateTime.now().toIso8601String(),
+    'last_sync': DateTime.now().toIso8601String(),
+  };
 
+  // Informações básicas do dispositivo
+  if (Platform.isAndroid) {
+    final androidInfo = await deviceInfoPlugin.androidInfo;
+    deviceInfo.addAll({
+      'model': androidInfo.model ?? 'Unknown',
+      'manufacturer': androidInfo.manufacturer ?? 'Unknown',
+      'brand': androidInfo.brand ?? 'Unknown',
+      'os': 'Android',
+      'os_version': androidInfo.version.release ?? 'Unknown',
+      'sdk_version': androidInfo.version.sdkInt.toString(),
+      'is_physical_device': androidInfo.isPhysicalDevice,
+    });
+  } else if (Platform.isIOS) {
+    final iosInfo = await deviceInfoPlugin.iosInfo;
+    deviceInfo.addAll({
+      'model': iosInfo.utsname.machine ?? 'Unknown',
+      'manufacturer': 'Apple',
+      'brand': 'Apple',
+      'os': 'iOS',
+      'os_version': iosInfo.systemVersion ?? 'Unknown',
+      'is_physical_device': iosInfo.isPhysicalDevice,
+    });
+  }
+
+  // Informações de bateria
+  try {
+    final batteryLevel = await battery.batteryLevel;
+    final batteryState = await battery.batteryState;
+
+    deviceInfo.addAll({
+      'battery_level': batteryLevel,
+      'battery_state': batteryState.toString(),
+    });
+  } catch (e) {
+    print("Erro ao obter informações de bateria: $e");
+  }
+
+  // Informações de armazenamento usando nosso serviço nativo
+  try {
+    final diskInfo = await NativeStatsService.getDiskSpace();
+    deviceInfo.addAll({
+      'free_disk_space': diskInfo['free_disk_space'],
+      'total_disk_space': diskInfo['total_disk_space'],
+      'disk_used_percentage': diskInfo['disk_used_percentage'],
+    });
+  } catch (e) {
+    print("Erro ao obter informações de armazenamento: $e");
+    // Fallback para valores padrão
+    deviceInfo.addAll({
+      'free_disk_space': '16.0GB',
+      'total_disk_space': '32.0GB',
+      'disk_used_percentage': '50.0',
+    });
+  }
+
+  // Informações de localização
   try {
     LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        locationError = 'Permissão de localização negada';
-      }
-    }
 
-    if (permission == LocationPermission.deniedForever) {
-      locationError = 'Permissão de localização permanentemente negada';
-    }
-
-    if (permission == LocationPermission.whileInUse ||
-        permission == LocationPermission.always) {
-      position = await Geolocator.getCurrentPosition(
+    if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+      final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
         timeLimit: Duration(seconds: 10),
       );
 
-      latitude = position.latitude;
-      longitude = position.longitude;
+      deviceInfo.addAll({
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'altitude': position.altitude,
+        'location_accuracy': position.accuracy,
+        'speed': position.speed,
+      });
+    } else {
+      deviceInfo.addAll({
+        'latitude': 0.0,
+        'longitude': 0.0,
+        'location_error': 'Permissão de localização não concedida',
+      });
     }
   } catch (e) {
-    locationError = 'Erro ao obter localização: $e';
-    print(locationError);
+    deviceInfo.addAll({
+      'latitude': 0.0,
+      'longitude': 0.0,
+      'location_error': 'Erro ao obter localização: $e',
+    });
+    print("Erro ao obter localização: $e");
   }
 
-
-  double freeDiskSpace = 0;
-  double totalDiskSpace = 0;
-
+  // Informações de conectividade
   try {
-    final directory = await getApplicationDocumentsDirectory();
-    final stat = await directory.parent.stat();
-    final statfs = FileStat.statSync(directory.parent.path);
+    final connectivity = await Connectivity().checkConnectivity();
 
-    // These are estimates, as Flutter doesn't have direct access to full disk stats
-    final freeSpace = await compute<String, int>((path) {
-      return File(path).statSync().size;
-    }, directory.path);
+    String connectionType = 'none';
+    switch (connectivity) {
+      case ConnectivityResult.wifi:
+        connectionType = 'wifi';
+        break;
+      case ConnectivityResult.mobile:
+        connectionType = 'mobile';
+        break;
+      default:
+        connectionType = 'none';
+    }
 
-    // Use the values we can access
-    freeDiskSpace = freeSpace.toDouble();
-
-    // Get total storage indirectly (this is an estimate)
-    final appDir = await getApplicationSupportDirectory();
-    final appStat = await appDir.stat();
-    totalDiskSpace = appStat.size.toDouble();
+    deviceInfo.addAll({
+      'connection_type': connectionType,
+      'is_online': connectionType != 'none',
+    });
   } catch (e) {
-    print("Error getting disk space: $e");
+    print("Erro ao obter informações de conectividade: $e");
   }
 
-  // // Convert to MB for readability (since we may not get accurate GB values)
-  // final freeMB = (freeDiskSpace / (1024 * 1024)).toStringAsFixed(2);
-  // final totalMB = (totalDiskSpace / (1024 * 1024)).toStringAsFixed(2);
+  // Informações de uso de aplicativos usando nosso serviço nativo
+  if (Platform.isAndroid) {
+    try {
+      bool hasPermission = await NativeStatsService.hasUsageStatsPermission();
+      if (hasPermission) {
+        final usageStats = await NativeStatsService.getAppUsageStats();
+        if (!usageStats.containsKey('error')) {
+          deviceInfo['screen_time_minutes'] = usageStats['total_screen_time_minutes'];
+          deviceInfo['screen_time_hours'] = usageStats['screen_time_hours'];
+          deviceInfo['top_apps'] = usageStats['top_apps'];
+        }
+      } else {
+        // Se não tem permissão, usar valores padrão
+        deviceInfo['screen_time_minutes'] = 0;
+        deviceInfo['screen_time_hours'] = '0.0';
+        deviceInfo['top_apps'] = {};
+      }
 
-  final freeGB = (freeDiskSpace / (1024 * 1024 * 1024)).toStringAsFixed(2);
-  final totalGB = (totalDiskSpace / (1024 * 1024 * 1024)).toStringAsFixed(2);
+      // Informações de aplicativos instalados
+      final appsInfo = await NativeStatsService.getInstalledAppsInfo();
+      if (!appsInfo.containsKey('error')) {
+        deviceInfo['total_apps_count'] = appsInfo['total_apps_count'];
+        deviceInfo['system_apps_count'] = appsInfo['system_apps_count'];
+        deviceInfo['user_apps_count'] = appsInfo['user_apps_count'];
+      }
+    } catch (e) {
+      print("Erro ao obter estatísticas de uso: $e");
+      // Valores padrão em caso de erro
+      deviceInfo['screen_time_minutes'] = 0;
+      deviceInfo['total_apps_count'] = 0;
+      deviceInfo['system_apps_count'] = 0;
+      deviceInfo['user_apps_count'] = 0;
+    }
+  } else {
+    // Para iOS, usar valores padrão por enquanto
+    deviceInfo['screen_time_minutes'] = 0;
+    deviceInfo['total_apps_count'] = 0;
+    deviceInfo['system_apps_count'] = 0;
+    deviceInfo['user_apps_count'] = 0;
+  }
 
-  return {
-    'device_id': deviceId,
-    'sync_count': (prefs.getInt('sync_count') ?? 0) + 1,
-    'first_sync': prefs.getString('first_sync') ?? DateTime.now().toIso8601String(),
-    'last_sync': DateTime.now().toIso8601String(),
-    'model': model,
-    'os': os,
-    'os_version': osVersion,
-    'battery_level': batteryLevel,
-    'battery_state': batteryState.toString(),
-    'free_disk_space': '${freeGB}GB',
-    'total_disk_space': '${totalGB}GB',
-    'free_disk_space_bytes': freeDiskSpace,
-    'total_disk_space_bytes': totalDiskSpace,
-    'latitude': latitude,
-    'longitude': longitude,
-    'location_error': locationError,
-  };
+  return deviceInfo;
 }
