@@ -1,3 +1,4 @@
+import 'package:corp_syncmdm/modules/user/edit_user_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -855,21 +856,16 @@ class _UserDetailPageState extends State<UserDetailPage> {
   }
 
   void _editUser(Map<String, dynamic> user) {
-    // TODO: Implementar navegação para tela de edição
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Funcionalidade de edição em desenvolvimento'),
-        backgroundColor: Color(0xFF259073),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditUserPage(user: user),
       ),
-    );
-
-    // Exemplo de como seria a navegação:
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => EditUserPage(user: user),
-    //   ),
-    // );
+    ).then((result) {
+      if (result == true) {
+        _refreshUserData();
+      }
+    });
   }
 
   void _showDeleteConfirmation(Map<String, dynamic> user) {
