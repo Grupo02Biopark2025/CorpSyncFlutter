@@ -100,7 +100,7 @@ class _LoginPageState extends State<LoginPage> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
 
-        await startPeriodicSyncAfterQRScan();
+        // await startPeriodicSyncAfterQRScan();
 
         // Navega para a tela de dashboard
         Navigator.of(context).pushReplacementNamed('/dashboard');

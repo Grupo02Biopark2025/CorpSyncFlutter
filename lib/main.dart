@@ -3,6 +3,7 @@ import 'package:corp_syncmdm/services/native_stats.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:corp_syncmdm/modules/user/user_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +11,87 @@ import 'package:android_intent_plus/android_intent.dart';
 import 'app.dart';
 import 'theme/theme_notifier.dart';
 import 'services/workmanager_sync.dart';
+
+class ClickAnalyticsObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    _trackNavigation(route.settings.name ?? route.runtimeType.toString());
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    if (previousRoute != null) {
+      _trackNavigation('back_to_${previousRoute.settings.name ?? previousRoute.runtimeType.toString()}');
+    }
+  }
+
+  void _trackNavigation(String routeName) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('current_user_id');
+
+      if (userId != null) {
+        final response = await http.post(
+          Uri.parse('http://10.0.2.2:4040/api/users/$userId/click'),
+          headers: {'Content-Type': 'application/json'},
+        ).timeout(Duration(seconds: 5));
+
+        print('📊 Navigation tracked: $routeName for user $userId');
+      }
+    } catch (e) {
+      print('❌ Error tracking navigation: $e');
+    }
+  }
+}
+
+// Classe para rastrear clicks gerais
+class AnalyticsService {
+  static void trackClick(String actionName) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('current_user_id');
+
+      if (userId != null) {
+        await http.post(
+          Uri.parse('http://10.0.2.2:4040/api/users/$userId/click'),
+          headers: {'Content-Type': 'application/json'},
+        ).timeout(Duration(seconds: 5));
+
+        print('📊 Click tracked: $actionName for user $userId');
+      }
+    } catch (e) {
+      print('❌ Error tracking click: $e');
+    }
+  }
+
+  static void trackLogin(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('current_user_id', userId);
+
+      await http.post(
+        Uri.parse('http://10.0.2.2:4040/api/users/$userId/login'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(Duration(seconds: 5));
+
+      print('🔑 Login tracked for user: $userId');
+    } catch (e) {
+      print('❌ Error tracking login: $e');
+    }
+  }
+
+  static void clearUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('current_user_id');
+      print('👋 User session cleared');
+    } catch (e) {
+      print('❌ Error clearing user: $e');
+    }
+  }
+}
 
 Future<void> requestAllPermissions() async {
   await requestLocationPermission();

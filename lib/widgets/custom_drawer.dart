@@ -1,3 +1,4 @@
+import 'package:corp_syncmdm/modules/user/user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
@@ -12,16 +13,25 @@ class CustomDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = Provider.of<UserProvider>(context).user;
+
+   Uint8List? imageBytes;
+    if (user?.profileImageBase64 != null) {
+     imageBytes = base64Decode(user!.profileImageBase64!);
+    }
+
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: <Widget>[
           UserAccountsDrawerHeader(
-            accountName: Text('Nome do Usuário'),
-            accountEmail: Text('email@exemplo.com'),
+            accountName: Text(user?.name ?? 'Nome do Usuário'),
+            accountEmail: Text(user?.email ?? 'email@exemplo.com'),
             currentAccountPicture: CircleAvatar(
-              backgroundImage:
-                  AssetImage('assets/images/Logo.png') as ImageProvider,
+              backgroundImage: imageBytes != null
+                  ? MemoryImage(imageBytes)
+                  : AssetImage('assets/images/default_user_image.png')
+              as ImageProvider,
             ),
             decoration: BoxDecoration(color: Color(0xFF259073)),
             otherAccountsPictures: <Widget>[
@@ -65,22 +75,22 @@ class CustomDrawer extends StatelessWidget {
           ),
           ExpansionTile(
             leading: Icon(Icons.supervised_user_circle),
-            title: Text('Usuarios'),
+            title: Text('Usuários'),
             children: <Widget>[
               ListTile(
                 leading: Icon(Icons.list),
-                title: Text('Usuarios'),
+                title: Text('Usuários'),
                 onTap: () {
-                  Navigator.of(context).pushReplacementNamed('/usuario');
+                  Navigator.of(context).pushReplacementNamed('/usuarios');
                 },
               ),
               ListTile(
                 leading: Icon(Icons.add),
-                title: Text('Cadastrar Usuarios'),
+                title: Text('Cadastrar Usuários'),
                 onTap: () {
                   Navigator.of(
                     context,
-                  ).pushReplacementNamed('/usuario/cadastro');
+                  ).pushReplacementNamed('/usuarios/add');
                 },
               ),
             ],
