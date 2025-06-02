@@ -16,6 +16,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   bool _isLoading = false;
+  bool obscurePassword = true;
+  bool obscureConfirm = true;
 
   Future<void> resetPassword(String email) async {
     final password = _passwordController.text.trim();
@@ -34,13 +36,11 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     setState(() => _isLoading = true);
 
     try {
-      final url = Uri.parse(
-        'http://192.168.3.112:4040/api/auth/reset-password',
-      );
+      final url = Uri.parse('http://10.0.2.2:4040/api/auth/reset-password');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': widget.email, 'password': password}),
+        body: jsonEncode({'email': email, 'password': password}),
       );
 
       setState(() => _isLoading = false);
@@ -86,31 +86,110 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     final email = args != null ? args['email'] as String : widget.email;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Redefinir Senha")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      backgroundColor: Colors.white,
+      body: Container(
+        padding: const EdgeInsets.only(top: 60, left: 40, right: 40),
+        child: ListView(
           children: [
+            const SizedBox(height: 40),
+            Center(
+              child: Image.asset(
+                'assets/images/Logo.png',
+                width: 100,
+                height: 100,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Center(
+              child: Text(
+                "CorpSync",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
+                  letterSpacing: 1.0,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            const SizedBox(height: 30),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Redefinir senha",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
             TextFormField(
               controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Nova Senha'),
-              obscureText: true,
+              obscureText: obscurePassword,
+              decoration: InputDecoration(
+                labelText: "Nova Senha",
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  ),
+                  onPressed: () {
+                    setState(() => obscurePassword = !obscurePassword);
+                  },
+                ),
+              ),
+              style: const TextStyle(fontSize: 20),
             ),
             const SizedBox(height: 10),
             TextFormField(
               controller: _confirmPasswordController,
-              decoration: const InputDecoration(labelText: 'Confirmar Senha'),
-              obscureText: true,
+              obscureText: obscureConfirm,
+              decoration: InputDecoration(
+                labelText: "Confirmar Senha",
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    obscureConfirm ? Icons.visibility_off : Icons.visibility,
+                  ),
+                  onPressed: () {
+                    setState(() => obscureConfirm = !obscureConfirm);
+                  },
+                ),
+              ),
+              style: const TextStyle(fontSize: 20),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : () => resetPassword(email),
-                child:
-                    _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text("Redefinir Senha"),
+            const SizedBox(height: 30),
+            Container(
+              height: 60,
+              alignment: Alignment.centerLeft,
+              decoration: const BoxDecoration(
+                color: Color(0xFF259073),
+                borderRadius: BorderRadius.all(Radius.circular(5)),
+              ),
+              child: SizedBox.expand(
+                child: TextButton(
+                  onPressed: _isLoading ? null : () => resetPassword(email),
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFF259073),
+                  ),
+                  child:
+                      _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "Redefinir Senha",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                ),
+                              ),
+                            ],
+                          ),
+                ),
               ),
             ),
           ],
