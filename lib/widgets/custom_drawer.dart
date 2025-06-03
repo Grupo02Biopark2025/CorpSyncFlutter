@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:corp_syncmdm/services/auth_service.dart';
-import 'package:corp_syncmdm/utils/base64_utils.dart';
 
 class CustomDrawer extends StatelessWidget {
   final bool isDarkMode;
