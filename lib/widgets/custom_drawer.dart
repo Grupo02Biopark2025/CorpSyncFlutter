@@ -10,28 +10,14 @@ class CustomDrawer extends StatelessWidget {
   final ValueChanged<bool> onThemeChanged;
 
   CustomDrawer({required this.isDarkMode, required this.onThemeChanged});
+
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<UserProvider>(context).user;
 
-    Uint8List? imageBytes;
-    if (user?.profileImageBase64 != null && user!.profileImageBase64!.isNotEmpty) {
-      try {
-        String base64String = user.profileImageBase64!;
-        
-        if (base64String.contains(',')) {
-          base64String = base64String.split(',').last;
-        }
-        
-        while (base64String.length % 4 != 0) {
-          base64String += '=';
-        }
-        
-        imageBytes = base64Decode(base64String);
-      } catch (e) {
-        print('Erro ao decodificar imagem Base64 no drawer: $e');
-        imageBytes = null;
-      }
+   Uint8List? imageBytes;
+    if (user?.profileImageBase64 != null) {
+     imageBytes = base64Decode(user!.profileImageBase64!);
     }
 
     return Drawer(
