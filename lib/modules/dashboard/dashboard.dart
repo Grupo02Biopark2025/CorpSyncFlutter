@@ -45,12 +45,22 @@ class _DashboardPageState extends State<DashboardPage> {
           )
           .timeout(Duration(seconds: 10));
 
+      final avgScreenTimeResponse = await http
+          .get(
+            Uri.parse('http://10.0.2.2:4040/api/dashboard/kpi/average-screen-time'),
+            headers: {'Content-Type': 'application/json'},
+          )
+          .timeout(Duration(seconds: 10));
+
       if (devicesResponse.statusCode == 200 &&
-          usersResponse.statusCode == 200) {
+          usersResponse.statusCode == 200 &&
+          avgScreenTimeResponse.statusCode == 200) {
         final devicesData = json.decode(devicesResponse.body);
         final usersData = json.decode(usersResponse.body);
+        final avgScreenTimeData = json.decode(avgScreenTimeResponse.body);
+        
         setState(() {
-          _dashboardData = _processDashboardData(devicesData, usersData);
+          _dashboardData = _processDashboardData(devicesData, usersData, avgScreenTimeData);
           _osVersionCurrentPage = 0;
           _isLoading = false;
         });
@@ -64,6 +74,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Map<String, dynamic> _processDashboardData(
     Map<String, dynamic> devicesData,
     List<dynamic> usersData,
+    Map<String, dynamic> avgScreenTimeData,
   ) {
     final devices = devicesData['devices'] as List<dynamic>;
 
@@ -71,19 +82,13 @@ class _DashboardPageState extends State<DashboardPage> {
     int onlineDevices = devices.where((d) => d['isOnline'] == true).length;
     int offlineDevices = totalDevices - onlineDevices;
 
-    double avgScreenTime = 0;
-    int validScreenTimeCount = 0;
+    double avgScreenTime = avgScreenTimeData['averageScreenTime']?.toDouble() ?? 0.0;
 
     Map<String, int> osVersions = {};
 
     Map<String, int> brands = {};
+    
     for (var device in devices) {
-      if (device['screenTimeMinutes'] != null &&
-          device['screenTimeMinutes'] > 0) {
-        avgScreenTime += device['screenTimeMinutes'];
-        validScreenTimeCount++;
-      }
-
       String osInfo =
           '${device['os'] ?? 'Desconhecido'} ${device['osVersion'] ?? ''}'
               .trim();
@@ -92,10 +97,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
       String brand = device['brand'] ?? 'Desconhecida';
       brands[brand] = (brands[brand] ?? 0) + 1;
-    }
-
-    if (validScreenTimeCount > 0) {
-      avgScreenTime = avgScreenTime / validScreenTimeCount;
     }
 
     int totalUsers = usersData.length;
