@@ -5,7 +5,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:corp_syncmdm/services/notification_manager.dart';
 
 class DeviceDetailPage extends StatefulWidget {
   final String deviceId;
@@ -24,11 +26,27 @@ class DeviceDetailPage extends StatefulWidget {
 
 class _DeviceDetailPageState extends State<DeviceDetailPage> {
   late Future<Map<String, dynamic>?> _lastLogFuture;
+  final NotificationManager _notificationManager = NotificationManager();
 
   @override
   void initState() {
     super.initState();
     _lastLogFuture = fetchLastLog();
+    _initializeNotifications();
+  }
+
+  Future<void> _initializeNotifications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final deviceId = prefs.getString('device_id');
+
+      if (deviceId != null) {
+        await _notificationManager.initialize(deviceId);
+        print('✅ Notificações inicializadas para ${deviceId}');
+      }
+    } catch (error) {
+      print('❌ Erro ao inicializar notificações: $error');
+    }
   }
 
   Future<Map<String, dynamic>?> fetchLastLog() async {
@@ -49,12 +67,156 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     }
   }
 
+  // Método para exibir lista de notificações
+  void _showNotificationsList() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        padding: EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Notificações',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                TextButton(
+                  onPressed: () => _notificationManager.clearAllNotifications(),
+                  child: Text('Limpar Todas'),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            Expanded(
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: _notificationManager.notificationListStream,
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.notifications_off, size: 64, color: Colors.grey),
+                          SizedBox(height: 16),
+                          Text('Nenhuma notificação'),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, index) {
+                      final notification = snapshot.data![index];
+                      final isRead = notification['isRead'] ?? false;
+
+                      return Card(
+                        margin: EdgeInsets.only(bottom: 8),
+                        elevation: isRead ? 1 : 3,
+                        child: ListTile(
+                          leading: Icon(
+                            Icons.notification_important,
+                            color: Color(0xFF259073),
+                          ),
+                          title: Text(
+                            notification['title'] ?? '',
+                            style: TextStyle(
+                              fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: Text(notification['message'] ?? ''),
+                          trailing: isRead ? null : Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: Color(0xFF259073),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          onTap: () => _notificationManager.markAsRead(
+                              notification['id'].toString()
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+// Método para exibir dialog de envio de notificação
+  void _showNotificationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return _NotificationDialog(deviceId: widget.deviceId);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Detalhes do Dispositivo'),
         actions: [
+          // Botão de notificações com contador
+          StreamBuilder<List<Map<String, dynamic>>>(
+            stream: _notificationManager.notificationListStream,
+            builder: (context, snapshot) {
+              final unreadCount = _notificationManager.getUnreadCount();
+
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.notifications),
+                    onPressed: () => _showNotificationsList(),
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '$unreadCount',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          // Botão para enviar notificação
+          IconButton(
+            icon: Icon(Icons.notification_add),
+            onPressed: () => _showNotificationDialog(),
+          ),
           IconButton(
             icon: Icon(Icons.refresh),
             onPressed: () {
@@ -697,5 +859,182 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
       default:
         return cleanState;
     }
+  }
+}
+
+class _NotificationDialog extends StatefulWidget {
+  final String deviceId;
+
+  _NotificationDialog({required this.deviceId});
+
+  @override
+  _NotificationDialogState createState() => _NotificationDialogState();
+}
+
+class _NotificationDialogState extends State<_NotificationDialog> {
+  final _titleController = TextEditingController();
+  final _messageController = TextEditingController();
+  String _selectedType = 'alert';
+  String _selectedPriority = 'normal';
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        padding: EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Enviar Notificação',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 24),
+
+            TextField(
+              controller: _titleController,
+              decoration: InputDecoration(
+                labelText: 'Título',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              maxLength: 50,
+            ),
+            SizedBox(height: 16),
+
+            TextField(
+              controller: _messageController,
+              decoration: InputDecoration(
+                labelText: 'Mensagem',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              maxLines: 3,
+              maxLength: 200,
+            ),
+            SizedBox(height: 16),
+
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedType,
+                    decoration: InputDecoration(
+                      labelText: 'Tipo',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    items: [
+                      DropdownMenuItem(value: 'alert', child: Text('Alerta')),
+                      DropdownMenuItem(value: 'warning', child: Text('Aviso')),
+                      DropdownMenuItem(value: 'info', child: Text('Informação')),
+                    ],
+                    onChanged: (value) => setState(() => _selectedType = value!),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedPriority,
+                    decoration: InputDecoration(
+                      labelText: 'Prioridade',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    items: [
+                      DropdownMenuItem(value: 'low', child: Text('Baixa')),
+                      DropdownMenuItem(value: 'normal', child: Text('Normal')),
+                      DropdownMenuItem(value: 'high', child: Text('Alta')),
+                      DropdownMenuItem(value: 'urgent', child: Text('Urgente')),
+                    ],
+                    onChanged: (value) => setState(() => _selectedPriority = value!),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 24),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: _isLoading ? null : () => Navigator.pop(context),
+                  child: Text('Cancelar'),
+                ),
+                SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _sendNotification,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF259073),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: _isLoading
+                      ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                      : Text('Enviar'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _sendNotification() async {
+    if (_titleController.text.trim().isEmpty || _messageController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Preencha todos os campos')),
+      );
+      return;
+    }
+
+    Future<String?> _getCurrentDeviceId() async {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('device_id');
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://10.0.2.2:4040/api/notifications/send'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'deviceId': await _getCurrentDeviceId() ?? widget.deviceId,
+          'title': _titleController.text.trim(),
+          'message': _messageController.text.trim(),
+          'type': _selectedType,
+          'priority': _selectedPriority,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Notificação enviada com sucesso!'),
+            backgroundColor: Color(0xFF259073),
+          ),
+        );
+      } else {
+        throw Exception('Falha ao enviar notificação');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _messageController.dispose();
+    super.dispose();
   }
 }
