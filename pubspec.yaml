@@ -59,6 +59,8 @@ dependencies:
   connectivity_plus: ^4.0.2
   network_info_plus: ^4.0.2
   #device_apps: ^2.2.0
+  web_socket_channel: ^2.4.0
+  flutter_local_notifications: ^17.1.2
   android_intent_plus: ^4.0.2
   system_info2: ^4.0.0
   image_picker: ^1.0.4

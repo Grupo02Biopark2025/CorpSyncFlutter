@@ -11,6 +11,8 @@ import 'package:android_intent_plus/android_intent.dart';
 import 'app.dart';
 import 'theme/theme_notifier.dart';
 import 'services/workmanager_sync.dart';
+import 'package:corp_syncmdm/services/notification_manager.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class ClickAnalyticsObserver extends NavigatorObserver {
   @override
@@ -174,6 +176,27 @@ Future<bool> checkAndRequestPermissions() async {
   return locationPermission && usageStatsPermission;
 }
 
+
+// Adicione esta função após checkAndRequestPermissions()
+Future<void> initializeNotifications() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final deviceId = prefs.getString('device_id'); // ou o nome da chave que você usa
+
+    if (deviceId != null && deviceId.isNotEmpty) {
+      final NotificationManager notificationManager = NotificationManager();
+
+      print('📱 Inicializando notificações para dispositivo: $deviceId');
+      await notificationManager.initialize(deviceId);
+      print('✅ Sistema de notificações inicializado');
+    } else {
+      print('ℹ️ DeviceId não encontrado, notificações não serão inicializadas');
+    }
+  } catch (e) {
+    print('❌ Erro ao inicializar notificações: $e');
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -199,6 +222,8 @@ void main() async {
   } else {
     await requestLocationPermission();
   }
+
+  await initializeNotifications();
 
   runApp(
     MultiProvider(
