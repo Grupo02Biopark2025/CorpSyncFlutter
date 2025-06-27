@@ -109,6 +109,35 @@ class NotificationManager {
     }
   }
 
+  void addExistingNotification(Map<String, dynamic> notification) {
+    print('🔍 Tentando adicionar notificação: ${notification['title']}');
+    print('🔍 Lista atual tem: ${_notifications.length} itens');
+
+    // Verificar se já existe para evitar duplicatas
+    final existingIndex = _notifications.indexWhere(
+            (n) => n['id'].toString() == notification['id'].toString()
+    );
+
+    if (existingIndex == -1) {
+      _notifications.add(notification);
+
+      // Ordenar por data (mais recente primeiro)
+      _notifications.sort((a, b) {
+        final aTime = DateTime.tryParse(a['timestamp'] ?? '') ?? DateTime(1900);
+        final bTime = DateTime.tryParse(b['timestamp'] ?? '') ?? DateTime(1900);
+        return bTime.compareTo(aTime);
+      });
+
+      print('✅ Notificação adicionada! Lista agora tem: ${_notifications.length} itens');
+
+      // Notificar mudança na lista
+      _notificationListController.add(_notifications);
+    } else {
+      print('⚠️ Notificação já existe na lista');
+    }
+  }
+
+
   Future<void> _showLocalNotification(Map<String, dynamic> notification) async {
     try {
       await _notificationService.showNotification(

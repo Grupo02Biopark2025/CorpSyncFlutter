@@ -92,7 +92,7 @@ class _LoginPageState extends State<LoginPage> {
         final responseData = jsonDecode(response.body);
         final user = UserModel.fromJson(responseData['user']);
         final String token = responseData['token'];
-  
+
         // Salva no provider
         Provider.of<UserProvider>(context, listen: false).setUser(user);
 
@@ -100,11 +100,12 @@ class _LoginPageState extends State<LoginPage> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
 
-        await startPeriodicSyncAfterQRScan();
+        // await startPeriodicSyncAfterQRScan();
 
         // Navega para a tela de dashboard
         Navigator.of(context).pushReplacementNamed('/dashboard');
       } catch (e) {
+        print(e);
           showErrorDialog("Erro! Contate um suporte.");
       }
     } else {

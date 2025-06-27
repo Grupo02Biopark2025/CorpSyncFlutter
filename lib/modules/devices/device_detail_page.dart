@@ -68,7 +68,23 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
   }
 
   // Método para exibir lista de notificações
-  void _showNotificationsList() {
+  void _showNotificationsList() async {
+    // Buscar notificações direto da API
+    List<Map<String, dynamic>> notifications = [];
+
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:4040/api/notifications?limit=100'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        notifications = List<Map<String, dynamic>>.from(data['notifications']);
+      }
+    } catch (error) {
+      print('❌ Erro: $error');
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -84,68 +100,69 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Notificações',
+                  'Notificações (${notifications.length})',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 TextButton(
-                  onPressed: () => _notificationManager.clearAllNotifications(),
-                  child: Text('Limpar Todas'),
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Fechar'),
                 ),
               ],
             ),
             SizedBox(height: 16),
+
             Expanded(
-              child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: _notificationManager.notificationListStream,
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+              child: notifications.isEmpty
+                  ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.notifications_off, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text('Nenhuma notificação'),
+                  ],
+                ),
+              )
+                  : ListView.builder(
+                itemCount: notifications.length,
+                itemBuilder: (context, index) {
+                  final notification = notifications[index];
+                  final isDelivered = notification['status'] == 'delivered';
+
+                  return Card(
+                    margin: EdgeInsets.only(bottom: 8),
+                    elevation: isDelivered ? 1 : 3,
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.notification_important,
+                        color: Color(0xFF259073),
+                      ),
+                      title: Text(
+                        notification['title'] ?? '',
+                        style: TextStyle(
+                          fontWeight: isDelivered ? FontWeight.normal : FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.notifications_off, size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text('Nenhuma notificação'),
+                          Text(notification['message'] ?? ''),
+                          SizedBox(height: 4),
+                          Text(
+                            'Status: ${notification['status']} • Device: ${notification['device']['model']}',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
                         ],
                       ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    itemCount: snapshot.data!.length,
-                    itemBuilder: (context, index) {
-                      final notification = snapshot.data![index];
-                      final isRead = notification['isRead'] ?? false;
-
-                      return Card(
-                        margin: EdgeInsets.only(bottom: 8),
-                        elevation: isRead ? 1 : 3,
-                        child: ListTile(
-                          leading: Icon(
-                            Icons.notification_important,
-                            color: Color(0xFF259073),
-                          ),
-                          title: Text(
-                            notification['title'] ?? '',
-                            style: TextStyle(
-                              fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
-                            ),
-                          ),
-                          subtitle: Text(notification['message'] ?? ''),
-                          trailing: isRead ? null : Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: Color(0xFF259073),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          onTap: () => _notificationManager.markAsRead(
-                              notification['id'].toString()
-                          ),
+                      trailing: !isDelivered ? Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: Color(0xFF259073),
+                          shape: BoxShape.circle,
                         ),
-                      );
-                    },
+                      ) : null,
+                    ),
                   );
                 },
               ),
@@ -165,6 +182,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
       },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
