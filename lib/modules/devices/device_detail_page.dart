@@ -69,7 +69,6 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
 
   // Método para exibir lista de notificações
   void _showNotificationsList() async {
-    // Buscar notificações direto da API
     List<Map<String, dynamic>> notifications = [];
 
     try {
